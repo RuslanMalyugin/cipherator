@@ -4,22 +4,44 @@ import sys
 import json
 
 parser = argparse.ArgumentParser()
-parser.add_argument("mode", type=str)
-parser.add_argument("--cipher")
-parser.add_argument("--key")
-parser.add_argument("--input-file")
-parser.add_argument("--output-file")
-parser.add_argument("--text-file")
-parser.add_argument("--model-file")
+# parser.add_argument("mode", type=str)
+
+subparsers = parser.add_subparsers()
+decode = subparsers.add_parser('decode')
+encode = subparsers.add_parser('encode')
+hack = subparsers.add_parser('hack')
+train = subparsers.add_parser('train')
+
+encode.set_defaults(mode='encode', func=encode)
+encode.add_argument("--cipher")
+encode.add_argument("--key")
+encode.add_argument("--input-file")
+encode.add_argument("--output-file")
+
+decode.set_defaults(mode='decode')
+decode.add_argument("--cipher")
+decode.add_argument("--key")
+decode.add_argument("--input-file")
+decode.add_argument("--output-file")
+
+hack.set_defaults(mode='hack')
+hack.add_argument("--input-file")
+hack.add_argument("--output-file")
+hack.add_argument("--model-file")
+
+train.set_defaults(mode='train')
+train.add_argument("--text-file")
+train.add_argument("--model-file")
+
 arguments = parser.parse_args()
 
 
-def one_digit_cipherator(slide, digit, mode, letter, cipher, counter):
-    l = ord(letter)
+def one_digit_cipherator(slide, digit, mode, size, cipher, counter):
+    l = ord(size)
     if cipher == 'caesar':
-        return chr((ord(digit) - ord(letter) + int(slide) * mode) % 26 + ord(letter))
+        return chr((ord(digit) - ord(size) + int(slide) * mode) % 26 + ord(size))
     elif cipher == 'vigenere':
-        return chr((ord(digit) + (ord(slide[counter % len(slide)]) - l) * mode - l) % 26 + ord(letter))
+        return chr((ord(digit) + (ord(slide[counter % len(slide)]) - l) * mode - l) % 26 + ord(size))
 
 
 def coding(input_, slide_, action_, cipher_):
@@ -75,65 +97,71 @@ def hacker(text_to_hacking, hacking_model):
     return hacked_text
 
 
-if arguments.mode == "encode" or arguments.mode == "decode":
+def reading(file):
+    file_ = open(file, 'r')
+    txt = file_.read()
+    file_.close()
+    return txt
+
+
+def writing(file, text):
+    new_file = open(file, 'w')
+    new_file.write(text)
+    new_file.close()
+
+
+def coding_and_encoding(arguments):
     action = 1
     new_txt = ''
     if arguments.mode == "decode":
         action = -1
     if arguments.input_file:
-        file = open(arguments.input_file, 'r')
-        txt = file.read()
+        txt = reading(arguments.input_file)
         new_txt = coding(txt, arguments.key, action, arguments.cipher)
-        file.close()
         if arguments.output_file:
-            new_file = open(arguments.output_file, 'w')
-            new_file.write(new_txt)
-            new_file.close()
+            writing(arguments.output_file, new_txt)
         else:
             print(new_txt)
     else:
         txt = sys.stdin.read()
         new_txt = coding(txt, arguments.key, action, arguments.cipher)
         if arguments.output_file:
-            new_file = open(arguments.output_file, 'w')
-            new_file.write(new_txt)
-            new_file.close()
+            writing(arguments.output_file, new_txt)
         else:
             print(new_txt)
 
-if arguments.mode == "train":
+def texting (arguments) :
     text = ''
     if arguments.text_file:
-        file = open(arguments.text_file, 'r')
-        text = file.read()
-        file.close()
+        text = reading(arguments.text_file)
     else:
         text = sys.stdin.read()
     stats = train(text)
-    stats_file = open(arguments.model_file, 'w')
-    stats_file.write(json.dumps(stats, indent=4))
-    stats_file.close()
+    writing(arguments.model_file, json.dumps(stats, indent=4))
 
-if arguments.mode == "hack":
+def hacking (arguments) :
     with open(arguments.model_file, 'r') as f:
         model = json.load(f)
     if arguments.input_file:
-        file = open(arguments.input_file, 'r')
-        txt = file.read()
+        txt = reading(arguments.input_file)
         new_txt = hacker(txt, model)
-        file.close()
         if arguments.output_file:
-            new_file = open(arguments.output_file, 'w')
-            new_file.write(new_txt)
-            new_file.close()
+            writing(arguments.output_file, new_txt)
         else:
             print(new_txt)
     else:
         txt = sys.stdin.read()
         new_txt = hacker(txt, model)
         if arguments.output_file:
-            new_file = open(arguments.output_file, 'w')
-            new_file.write(new_txt)
-            new_file.close()
+            writing(arguments.output_file, new_txt)
         else:
             print(new_txt)
+
+if arguments.mode == "encode" or arguments.mode == "decode":
+    coding_and_encoding(arguments)
+
+elif arguments.mode == "train":
+    texting(arguments)
+
+elif arguments.mode == "hack":
+    hacking(arguments)
