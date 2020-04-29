@@ -12,7 +12,7 @@ encode = subparsers.add_parser('encode')
 hack = subparsers.add_parser('hack')
 train = subparsers.add_parser('train')
 
-encode.set_defaults(mode='encode', func=encode)
+encode.set_defaults(mode='encode')
 encode.add_argument("--cipher")
 encode.add_argument("--key")
 encode.add_argument("--input-file")
