@@ -3,8 +3,10 @@ import string
 import sys
 import json
 
+indexes_lower_case = {string.ascii_lowercase[i]: i for i in range(len(string.ascii_lowercase))}
+indexes_upper_case = {string.ascii_uppercase[i]: i for i in range(len(string.ascii_uppercase))}
+
 parser = argparse.ArgumentParser()
-# parser.add_argument("mode", type=str)
 
 subparsers = parser.add_subparsers()
 decode = subparsers.add_parser('decode')
@@ -33,81 +35,86 @@ train.set_defaults(mode='train')
 train.add_argument("--text-file")
 train.add_argument("--model-file")
 
-arguments = parser.parse_args()
+parser_arguments = parser.parse_args()
 
 
 def one_digit_cipherator(slide, digit, mode, size, cipher, counter):
-    l = ord(size)
+    alphabet_size = len(string.ascii_lowercase)
     if cipher == 'caesar':
-        return chr((ord(digit) - ord(size) + int(slide) * mode) % 26 + ord(size))
+        if size == "a":
+            return string.ascii_lowercase[(indexes_lower_case[digit] + int(slide) * mode) % alphabet_size]
+        else:
+            return string.ascii_uppercase[(indexes_upper_case[digit] + int(slide) * mode) % alphabet_size]
     elif cipher == 'vigenere':
-        return chr((ord(digit) + (ord(slide[counter % len(slide)]) - l) * mode - l) % 26 + ord(size))
+        if size == "a":
+            return string.ascii_lowercase[
+                (indexes_lower_case[digit] + (indexes_lower_case[slide[counter % len(slide)]]) * mode) % alphabet_size]
+        else:
+            return string.ascii_uppercase[
+                (indexes_upper_case[digit] + (indexes_upper_case[slide[counter % len(slide)]]) * mode) % alphabet_size]
 
 
-def coding(input_, slide_, action_, cipher_):
+def coding(input, slide, action, cipher):
     counter = 0
     result = ''
-    for i in input_:
+    for i in input:
         if i.islower() or i.isupper():
             letter = 'a'
             if i.isupper():
                 letter = 'A'
-            result += one_digit_cipherator(slide_, i, action_, letter, cipher_, counter)
+            result = ''.join([result, one_digit_cipherator(slide, i, action, letter, cipher, counter)])
             counter += 1
         else:
-            result += i
+            result = ''.join([result, i])
     return result
 
 
 def train(text_to_train):
-    letters_counter = {}
-    for i in string.ascii_lowercase:
-        letters_counter[i] = 0
+    letters_counter = {a: 0 for a in string.ascii_lowercase}
     size = 0
     text_tmp = text_to_train.lower()
     statistics = dict()
     for i in text_tmp:
         if i in string.ascii_lowercase:
-            letters_counter[i] += 1  # + int(letters_counter[i])
+            letters_counter[i] += 1
             size += 1
     for i in string.ascii_lowercase:
         statistics[i] = letters_counter[i] / size
     return statistics
 
 
+def difference(correct_dict, unhacked_dict, slide):
+    diff = 0.0
+    for i in string.ascii_lowercase:
+        slided_i = one_digit_cipherator(slide, i, -1, 'a', 'caesar', 10)
+        if i in correct_dict and slided_i in unhacked_dict:
+            diff += (correct_dict[i] - unhacked_dict[slided_i]) ** 2
+    return diff
+
+
 def hacker(text_to_hacking, hacking_model):
-    text_to_hack = text_to_hacking.lower()
-    coded = train(text_to_hack)
-    coded_list = list(coded.items())
-    coded_list.sort(key=lambda i: i[1])
-    model_list = list(hacking_model.items())
-    model_list.sort(key=lambda i: i[1])
-    list_for_hack = list()
-    for i in range(26):
-        list_for_hack.append(abs(ord(model_list[i][0]) - ord(coded_list[i][0])))
-    set_for_hack = set(list_for_hack)
-    most_popular = 0
-    slide = 0
-    for i in set_for_hack:
-        counter = list_for_hack.count(i)
-        if counter > most_popular:
-            most_popular = counter
-            slide = i
-    hacked_text = coding(text_to_hacking, slide, -1, 'caesar')
+    statistic = train(text_to_hacking)
+    alphabet_size = len(string.ascii_lowercase)
+    min_key = 0
+    min_diff = difference(hacking_model, statistic, 0)
+    for i in range(1, alphabet_size):
+        curr_diff = difference(hacking_model, statistic, i)
+        if curr_diff < min_diff:
+            min_key = i
+            min_diff = curr_diff
+    hacked_text = coding(text_to_hacking, min_key, 1, 'caesar')
     return hacked_text
 
 
 def reading(file):
-    file_ = open(file, 'r')
-    txt = file_.read()
-    file_.close()
+    with open(file, "r") as reading_file:
+        txt = reading_file.read()
     return txt
 
 
 def writing(file, text):
-    new_file = open(file, 'w')
-    new_file.write(text)
-    new_file.close()
+    with open(file, "w") as new_file:
+        new_file.write(text)
 
 
 def coding_and_encoding(arguments):
@@ -130,7 +137,8 @@ def coding_and_encoding(arguments):
         else:
             print(new_txt)
 
-def texting (arguments) :
+
+def texting(arguments):
     text = ''
     if arguments.text_file:
         text = reading(arguments.text_file)
@@ -139,7 +147,8 @@ def texting (arguments) :
     stats = train(text)
     writing(arguments.model_file, json.dumps(stats, indent=4))
 
-def hacking (arguments) :
+
+def hacking(arguments):
     with open(arguments.model_file, 'r') as f:
         model = json.load(f)
     if arguments.input_file:
@@ -157,11 +166,12 @@ def hacking (arguments) :
         else:
             print(new_txt)
 
-if arguments.mode == "encode" or arguments.mode == "decode":
-    coding_and_encoding(arguments)
 
-elif arguments.mode == "train":
-    texting(arguments)
+if parser_arguments.mode == "encode" or parser_arguments.mode == "decode":
+    coding_and_encoding(parser_arguments)
 
-elif arguments.mode == "hack":
-    hacking(arguments)
+elif parser_arguments.mode == "train":
+    texting(parser_arguments)
+
+elif parser_arguments.mode == "hack":
+    hacking(parser_arguments)
