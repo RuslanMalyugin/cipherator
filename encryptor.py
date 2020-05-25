@@ -81,7 +81,7 @@ def train(text_to_train):
             if ilow in statistics:
                 statistics[ilow] += 1
             else:
-                statistics[i] = 1
+                statistics[ilow] = 1
     for i in statistics:
         statistics[i] /= size
     return statistics
