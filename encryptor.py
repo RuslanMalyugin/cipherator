@@ -4,7 +4,6 @@ import sys
 import json
 from collections import Counter
 
-
 indexes_lower_case = {string.ascii_lowercase[i]: i for i in range(len(string.ascii_lowercase))}
 indexes_upper_case = {string.ascii_uppercase[i]: i for i in range(len(string.ascii_uppercase))}
 
@@ -75,9 +74,10 @@ def train(text_to_train):
     size = 0
     statistics = dict()
     for i in text_to_train:
+        ilow = i.lower()
         if ilow.isalpha():
             size += 1
-            ilow = i.lower()# or we can do this code : if i.isalpha():
+            # or we can do this code : if i.isalpha():
             if ilow in statistics:
                 statistics[ilow] += 1
             else:
@@ -90,7 +90,7 @@ def train(text_to_train):
 def difference(correct_dict, unhacked_dict, slide):
     diff = 0.0
     for i in string.ascii_lowercase:
-        slided_i = one_digit_cipherator(slide, i, -1, True, 'caesar', 10)
+        slided_i = one_digit_cipherator(slide, i, -1, False, 'caesar', 10)
         if i in correct_dict and slided_i in unhacked_dict:
             diff += (correct_dict[i] - unhacked_dict[slided_i]) ** 2
     return diff
