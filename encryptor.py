@@ -4,6 +4,7 @@ import sys
 import json
 from collections import Counter
 
+
 indexes_lower_case = {string.ascii_lowercase[i]: i for i in range(len(string.ascii_lowercase))}
 indexes_upper_case = {string.ascii_uppercase[i]: i for i in range(len(string.ascii_uppercase))}
 
@@ -177,3 +178,5 @@ elif parser_arguments.mode == 'train':
 
 elif parser_arguments.mode == 'hack':
     hacking(parser_arguments)
+
+    
